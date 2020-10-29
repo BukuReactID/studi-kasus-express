@@ -1,4 +1,5 @@
 const Tag = require('./model');
+const { policyFor } = require('../policy');
 
 async function store(req, res, next){
 

@@ -5,7 +5,7 @@ const Product = require('./model');
 const Category = require('../category/model');
 const Tag = require('../tag/model');
 const config = require('../config');
-const policy = require('../policy');
+const { policyFor } = require('../policy');
 
 async function index(req, res, next){ 
 
