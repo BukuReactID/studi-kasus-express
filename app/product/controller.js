@@ -122,6 +122,9 @@ async function store(req, res, next){
              })
           }
 
+          next(err);
+
+
         }
        });
 
@@ -226,6 +229,8 @@ async function update(req, res, next){
                  fields: err.errors
                });
             }
+
+            next(err);
          }
        });
 
