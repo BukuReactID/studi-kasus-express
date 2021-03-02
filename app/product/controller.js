@@ -202,20 +202,31 @@ async function update(req, res, next){
        src.pipe(dest);
 
        src.on('end', async () => {
+         try {
 
-          let product = await Product.findOne({_id: req.params.id});
+            let product = await Product.findOne({_id: req.params.id});
 
-          let currentImage = `${config.rootPath}/public/upload/${product.image_url}`;
+            let currentImage = `${config.rootPath}/public/upload/${product.image_url}`;
 
-          if(fs.existsSync(currentImage)){
-            fs.unlinkSync(currentImage)
-          }
+            if(fs.existsSync(currentImage)){
+              fs.unlinkSync(currentImage)
+            }
 
-					product = 
-						await Product
-						.findOneAndUpdate({_id: req.params.id}, {...payload, image_url: filename}, {new: true, runValidators: true});
+            product = 
+              await Product
+              .findOneAndUpdate({_id: req.params.id}, {...payload, image_url: filename}, {new: true, runValidators: true});
 
-          return res.json(product);
+            return res.json(product);
+         } catch(err){
+            // ----- cek tipe error ---- //
+            if(err && err.name === 'ValidationError'){
+               return res.json({
+                 error: 1, 
+                 message: err.message, 
+                 fields: err.errors
+               });
+            }
+         }
        });
 
        src.on('error', async() => {
