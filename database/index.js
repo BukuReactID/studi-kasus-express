@@ -7,7 +7,7 @@ const { dbHost, dbName, dbPort, dbUser, dbPass } = require('../app/config');
 // (3) connect ke MongoDB menggunakan konfigurasi yang telah kita import 
 mongoose
   .connect(`mongodb://${dbUser}:${dbPass}@${dbHost}:${dbPort}/${dbName}?authSource=admin`, 
-    {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false});
+    {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, useCreateIndex: true});
 
 
 // (4) simpan koneksi dalam constant `db`
