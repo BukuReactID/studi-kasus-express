@@ -104,9 +104,25 @@ async function store(req, res, next){
        src.pipe(dest);
 
        src.on('end', async () => {
-          let product = new Product({...payload, image_url: filename});
-          await product.save();
+        try {
+
+          let product = new Product({...payload, image_url: filename})
+          await product.save()
           return res.json(product);
+
+        } catch(err){
+
+          fs.unlinkSync(target_path);
+
+          if(err && err.name === 'ValidationError'){
+             return res.json({
+               error: 1, 
+               message: err.message, 
+               fields: err.errors
+             })
+          }
+
+        }
        });
 
        src.on('error', async() => {
