@@ -7,7 +7,7 @@ const { policyFor } = require('../policy');
 const config = require('../config');
 
 let snap = new midtransClient.Snap({
-  isProduction: false, 
+  isProduction: config.midtrans.isProduction, 
   serverKey: config.midtrans.serverKey,
   clientKey : config.midtrans.clientKey
 });
