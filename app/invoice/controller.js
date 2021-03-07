@@ -14,7 +14,6 @@ let snap = new midtransClient.Snap({
 
 async function show(req, res, next){
 
-
   try{
    
    let { order_id } = req.params;
@@ -61,7 +60,8 @@ async function initiatePayment(req, res){
       .populate('user'); 
 
     if(!invoice){
-      return res.status(404).json({
+      return res.json({
+        error: 1,
         message: 'Invoice not found'
       })
     }
@@ -87,8 +87,6 @@ async function initiatePayment(req, res){
 
  } catch(err) {
 
-   console.log(err);
-
    return res.json({
      error: 1, 
      message: 'Something when wrong'
@@ -99,46 +97,50 @@ async function initiatePayment(req, res){
 
 async function handleMidtransNotification(req, res){
 
-  let statusResponse = await snap.transaction.notification(req.body)
-  let orderId = statusResponse.order_id;
-  let transactionStatus = statusResponse.transaction_status;
-  let fraudStatus = statusResponse.fraud_status;
+  try{
+    let statusResponse = await snap.transaction.notification(req.body)
+    let orderId = statusResponse.order_id;
+    let transactionStatus = statusResponse.transaction_status;
+    let fraudStatus = statusResponse.fraud_status;
 
-  if (transactionStatus == 'capture'){
+    if (transactionStatus == 'capture'){
 
-      if (fraudStatus == 'challenge'){
-        await snap.transaction.approve(orderId);
+        if (fraudStatus == 'challenge'){
+          await snap.transaction.approve(orderId);
 
-        await Invoice
-          .findOneAndUpdate({order: orderId}, {payment_status: 'paid'})
+          await Invoice
+            .findOneAndUpdate({order: orderId}, {payment_status: 'paid'})
 
-        await Order
-          .findOneAndUpdate({_id: orderId}, {status: 'processing'})
+          await Order
+            .findOneAndUpdate({_id: orderId}, {status: 'processing'})
 
-        return res.json('success');
+          return res.json('success');
 
-      } else if (fraudStatus == 'accept'){
-        await Invoice
-          .findOneAndUpdate({order: orderId}, {payment_status: 'paid'})
+        } else if (fraudStatus == 'accept'){
+          await Invoice
+            .findOneAndUpdate({order: orderId}, {payment_status: 'paid'})
 
-        await Order
-          .findOneAndUpdate({_id: orderId}, {status: 'processing'})
+          await Order
+            .findOneAndUpdate({_id: orderId}, {status: 'processing'})
 
-        return res.json('success');
+          return res.json('success');
 
-      } else {
-        // transaction is denied do nothing
-        return res.json('ok');
-      }  
-  } else if (transactionStatus == 'settlement'){
+        } else {
+          // transaction is denied do nothing
+          return res.json('ok');
+        }  
+    } else if (transactionStatus == 'settlement'){
 
-    await Invoice
-      .findOneAndUpdate({order: orderId}, {payment_status: 'paid'}, {new: true})
-    await Order
-      .findOneAndUpdate({_id: orderId}, {status: 'delivered'})
+      await Invoice
+        .findOneAndUpdate({order: orderId}, {payment_status: 'paid'}, {new: true})
+      await Order
+        .findOneAndUpdate({_id: orderId}, {status: 'delivered'})
 
-    return res.json('success');
-  } 
+      return res.json('success');
+    } 
+  } catch(err) {
+    return res.status(500).json('Something went wrong');
+  }
 }
 
 module.exports = {
