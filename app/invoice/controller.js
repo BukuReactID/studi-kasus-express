@@ -6,6 +6,12 @@ const Order = require('../order/model');
 const { policyFor } = require('../policy');
 const config = require('../config');
 
+let snap = new midtransClient.Snap({
+  isProduction: false, 
+  serverKey: config.midtrans.serverKey,
+  clientKey : config.midtrans.clientKey
+});
+
 async function show(req, res, next){
 
 
@@ -45,6 +51,7 @@ async function show(req, res, next){
 }
 
 async function initiatePayment(req, res){
+
  try{
     let { order_id } = req.params;
 
@@ -58,11 +65,6 @@ async function initiatePayment(req, res){
         message: 'Invoice not found'
       })
     }
-
-    let snap = new midtransClient.Snap({
-      isProduction: false, 
-      serverKey: config.midtrans.serverKey
-    });
 
     let parameter = {
       transaction_details: {
@@ -96,35 +98,38 @@ async function initiatePayment(req, res){
 }
 
 async function handleMidtransNotification(req, res){
-  // Create Core API / Snap instance (both have shared `transactions` methods)
-  let apiClient = new midtransClient.Snap({
-          isProduction : false,
-          serverKey : config.midtrans.serverKey,
-          clientKey : config.midtrans.clientKey
-      });
 
-  let statusResponse = await apiClient.transaction.notification(req.body)
+  let statusResponse = await snap.transaction.notification(req.body)
   let orderId = statusResponse.order_id;
   let transactionStatus = statusResponse.transaction_status;
   let fraudStatus = statusResponse.fraud_status;
 
-  console.log(`Transaction notification received. Order ID: ${orderId}. Transaction status: ${transactionStatus}. Fraud status: ${fraudStatus}`);
-
   if (transactionStatus == 'capture'){
+
       if (fraudStatus == 'challenge'){
-          // TODO set transaction status on your database to 'challenge'
-          // and response with 200 OK
-      } else if (fraudStatus == 'accept'){
-          // TODO set transaction status on your database to 'success'
-          // and response with 200 OK
+        await snap.transaction.approve(orderId);
+
         await Invoice
           .findOneAndUpdate({order: orderId}, {payment_status: 'paid'})
 
         await Order
           .findOneAndUpdate({_id: orderId}, {status: 'delivered'})
 
-        return res.json('OK');
-      }
+        return res.json('success');
+
+      } else if (fraudStatus == 'accept'){
+        await Invoice
+          .findOneAndUpdate({order: orderId}, {payment_status: 'paid'})
+
+        await Order
+          .findOneAndUpdate({_id: orderId}, {status: 'delivered'})
+
+        return res.json('success');
+
+      } else {
+        // transaction is denied do nothing
+        return res.json('ok');
+      }  
   } else if (transactionStatus == 'settlement'){
 
     await Invoice
@@ -132,17 +137,8 @@ async function handleMidtransNotification(req, res){
     await Order
       .findOneAndUpdate({_id: orderId}, {status: 'delivered'})
 
-    return res.json('OK');
-
-  } else if (transactionStatus == 'cancel' ||
-    transactionStatus == 'deny' ||
-    transactionStatus == 'expire'){
-    // TODO set transaction status on your database to 'failure'
-    // and response with 200 OK
-  } else if (transactionStatus == 'pending'){
-    // TODO set transaction status on your database to 'pending' / waiting payment
-    // and response with 200 OK
-  }
+    return res.json('success');
+  } 
 }
 
 module.exports = {
