@@ -113,7 +113,7 @@ async function handleMidtransNotification(req, res){
           .findOneAndUpdate({order: orderId}, {payment_status: 'paid'})
 
         await Order
-          .findOneAndUpdate({_id: orderId}, {status: 'delivered'})
+          .findOneAndUpdate({_id: orderId}, {status: 'processing'})
 
         return res.json('success');
 
@@ -122,7 +122,7 @@ async function handleMidtransNotification(req, res){
           .findOneAndUpdate({order: orderId}, {payment_status: 'paid'})
 
         await Order
-          .findOneAndUpdate({_id: orderId}, {status: 'delivered'})
+          .findOneAndUpdate({_id: orderId}, {status: 'processing'})
 
         return res.json('success');
 
